@@ -13,18 +13,21 @@ def import_scans_csv(session: Session, file: Any) -> Dict[str, Any]:
     if file.content_type not in ("text/csv", "application/vnd.ms-excel", "text/plain"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a CSV")
 
-    decoded = TextIOWrapper(file.file, encoding="utf-8")
+    decoded = TextIOWrapper(file.file, encoding="utf-8-sig", newline="")
     reader = csv.DictReader(decoded)
+
+    if not reader.fieldnames or "rfid_code" not in reader.fieldnames:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CSV must contain rfid_code column")
 
     total_rows = 0
     imported_rows = 0
     skipped_rows = 0
     errors: List[Dict[str, Any]] = []
+    scans_to_create: List[ReaderScan] = []
 
     for row_num, row in enumerate(reader, start=1):
         total_rows += 1
 
-        # Skip completely empty rows
         if not any(value and value.strip() for value in row.values()):
             skipped_rows += 1
             continue
@@ -38,15 +41,12 @@ def import_scans_csv(session: Session, file: Any) -> Dict[str, Any]:
         reader_name = (row.get("reader_name") or "").strip() or None
         batch_id = (row.get("batch_id") or "").strip() or None
 
-        scan = ReaderScan(rfid_code=rfid_code, reader_name=reader_name, batch_id=batch_id)
-        session.add(scan)
-        try:
-            session.commit()
-            imported_rows += 1
-        except Exception as exc:  # noqa: BLE001
-            session.rollback()
-            skipped_rows += 1
-            errors.append({"row": row_num, "error": str(exc)})
+        scans_to_create.append(ReaderScan(rfid_code=rfid_code, reader_name=reader_name, batch_id=batch_id))
+
+    if scans_to_create:
+        session.add_all(scans_to_create)
+        session.commit()
+        imported_rows = len(scans_to_create)
 
     return {
         "total_rows": total_rows,
@@ -61,34 +61,29 @@ def bulk_ingest_scans(session: Session, rfid_codes: List[str], reader_name: str 
     if not codes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="rfid_codes must contain at least one non-empty value")
 
-    seen = set()
-    unique_codes: List[str] = []
-    for code in codes:
-        if code not in seen:
-            seen.add(code)
-            unique_codes.append(code)
-
-    stmt = select(ReaderScan.rfid_code).where(ReaderScan.rfid_code.in_(unique_codes))
+    input_codes = set(codes)
+    stmt = select(ReaderScan.rfid_code).where(ReaderScan.rfid_code.in_(input_codes))
     if reader_name is not None:
         stmt = stmt.where(ReaderScan.reader_name == reader_name)
     if batch_id is not None:
         stmt = stmt.where(ReaderScan.batch_id == batch_id)
 
-    existing = {row[0] for row in session.exec(stmt).all()}
+    existing = set(session.exec(stmt).all())
 
     to_create = [
         ReaderScan(rfid_code=code, reader_name=reader_name, batch_id=batch_id)
-        for code in unique_codes
+        for code in codes
         if code not in existing
     ]
 
-    session.add_all(to_create)
-    session.commit()
+    if to_create:
+        session.add_all(to_create)
+        session.commit()
 
     return {
         "total_received": len(rfid_codes),
         "created_scans": len(to_create),
-        "duplicated_codes": sorted(list(existing)),
+        "duplicated_codes": sorted(existing),
     }
 
 

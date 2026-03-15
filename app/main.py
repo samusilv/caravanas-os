@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.database import init_db
+from app.routers.ai import router as ai_router
 from app.routers.animals import router as animals_router
 from app.routers.events import router as events_router
 from app.routers.health import router as health_router
@@ -29,3 +30,4 @@ app.include_router(scans_router)
 app.include_router(exports_router)
 app.include_router(lots_router)
 app.include_router(dashboard_router)
+app.include_router(ai_router)

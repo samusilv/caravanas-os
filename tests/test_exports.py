@@ -30,5 +30,7 @@ def test_export_lot_embarque_csv():
 
     text = response.text
     assert "rfid_code" in text
+    assert "estimated_weight_kg" in text
     assert "V-123" in text
     assert "ExportLot" in text
+    assert "320.5" in text

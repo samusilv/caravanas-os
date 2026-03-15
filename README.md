@@ -31,14 +31,33 @@ The API will be available at `http://127.0.0.1:8000`.
 - `POST /events/` - create an event for an animal
 - `GET /events/` - list events
 - `GET /events/animal/{animal_id}` - list events for an animal
-- `GET /animals/{animal_id}/history` - get animal info + events + scans
-- `GET /animals/by-rfid/{rfid_code}` - lookup animal by RFID with events and last known lot
+- `GET /animals/{animal_id}/history` - get animal info + events (newest first) + scans matched by RFID
+- `GET /animals/by-rfid/{rfid_code}` - lookup animal by RFID with events (newest first) and current lot
 - `POST /lots/{lot_id}/assign-from-batch` - assign animals to a lot from a scan batch
+
+assign-from-batch payload:
+
+```json
+{
+  "batch_id": "embarque_001"
+}
+```
 - `GET /lots/{lot_id}/history` - get lot info, animals, and recent events
-- `GET /exports/lots/{lot_id}/embarque` - download CSV report for lot embarque
+- `GET /exports/lots/{lot_id}/embarque` - download CSV report for lot embarque (`rfid_code`, `visual_tag`, `category`, `sex`, `estimated_weight_kg`, `lot_name`)
 - `GET /dashboard/summary` - operational dashboard summary
+- `POST /ai/lot-summary` - generate deterministic Spanish lot-operation summary from validation data
 - `GET /scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)
 - `POST /scans/bulk` - bulk ingest RFID scan codes (JSON payload)
+
+Example payload:
+
+```json
+{
+  "rfid_codes": ["858123000000001", "858123000000002"],
+  "reader_name": "reader_1",
+  "batch_id": "batch_001"
+}
+```
 
 ### Lots
 
@@ -46,7 +65,7 @@ The API will be available at `http://127.0.0.1:8000`.
 - `GET /lots/` - list lots
 - `POST /lots/{lot_id}/animals/{animal_id}` - assign an animal to a lot
 - `GET /lots/{lot_id}/animals` - list animals in a lot
-- `GET /lots/{lot_id}/validate` - validate a lot (basic status)
+- `GET /lots/{lot_id}/validate` - valida lote con resumen de conteo (esperados, escaneados, duplicados, desconocidos)
 
 ### CSV import (RFID reader scans)
 
@@ -61,6 +80,14 @@ curl -F "file=@scans.csv" http://127.0.0.1:8000/imports/scans-csv
 Response:
 
 - `total_rows`, `imported_rows`, `skipped_rows`, `errors`
+
+Example CSV:
+
+```csv
+rfid_code,reader_name,batch_id
+ABC123,CorralGate-1,Lote-2026-01
+DEF456,,Lote-2026-01
+```
 
 ## 🧪 Run tests
 

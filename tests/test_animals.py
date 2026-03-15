@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -64,9 +66,10 @@ def test_animal_history_includes_events_and_scans():
     assert history["animal"]["id"] == animal["id"]
     assert len(history["events"]) == 1
     assert len(history["scans"]) == 1
+    assert history["scans"][0]["rfid_code"] == "RFID-HIST"
 
 
-def test_lookup_by_rfid_includes_events_and_last_lot():
+def test_lookup_by_rfid_includes_events_and_current_lot():
     client = TestClient(app)
 
     # Create animal
@@ -100,4 +103,4 @@ def test_lookup_by_rfid_includes_events_and_last_lot():
 
     assert data["animal"]["id"] == animal["id"]
     assert len(data["events"]) == 1
-    assert data["last_lot"]["id"] == lot["id"]
+    assert data["current_lot"]["id"] == lot["id"]

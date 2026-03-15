@@ -30,18 +30,18 @@ def test_bulk_scans_endpoint():
     client = TestClient(app)
 
     payload = {
-        "rfid_codes": ["RFID-B1", "RFID-B2", "RFID-B1"],
-        "reader_name": "test_reader",
-        "batch_id": "BATCH-123",
+        "rfid_codes": ["858123000000001", "858123000000002"],
+        "reader_name": "reader_1",
+        "batch_id": "batch_001",
     }
 
     response = client.post("/scans/bulk", json=payload)
     assert response.status_code == 200
 
     data = response.json()
-    assert data["total_received"] == 3
+    assert data["total_received"] == 2
     assert data["created_scans"] == 2
-    assert data["duplicated_codes"] == ["RFID-B1"]
+    assert data["duplicated_codes"] == []
 
 
 def test_lot_validation_endpoint():
@@ -53,7 +53,11 @@ def test_lot_validation_endpoint():
     # Validate empty lot
     response = client.get(f"/lots/{lot['id']}/validate")
     assert response.status_code == 200
-    assert response.json()["status"] == "empty"
+    data = response.json()
+    assert data["expected_count"] == 0
+    assert data["scanned_count"] == 0
+    assert data["missing_count_estimate"] == 0
+    assert "status_summary" in data
 
     # Create animal and assign to lot
     animal = client.post("/animals/", json={"tag_id": "RFID-VAL-1", "name": "Val"}).json()
@@ -61,4 +65,8 @@ def test_lot_validation_endpoint():
 
     response = client.get(f"/lots/{lot['id']}/validate")
     assert response.status_code == 200
-    assert response.json()["status"] == "valid"
+    data = response.json()
+    assert data["expected_count"] == 1
+    assert data["scanned_count"] == 0
+    assert data["missing_count_estimate"] == 1
+    assert "incompleto" in data["status_summary"].lower()

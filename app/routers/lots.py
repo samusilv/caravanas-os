@@ -1,11 +1,11 @@
 from typing import Dict, List
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from app.database import get_session
 from app.models import Animal, Lot
+from app.schemas import AssignFromBatchRequest
 from app.services.lot_service import (
     add_animal_to_lot as service_add_animal_to_lot,
     assign_from_batch as service_assign_from_batch,
@@ -41,10 +41,6 @@ def add_animal_to_lot(*, session: Session = Depends(get_session), lot_id: int, a
 def list_animals_in_lot(*, session: Session = Depends(get_session), lot_id: int) -> List[Animal]:
     """List animals assigned to a lot."""
     return service_list_animals_in_lot(session, lot_id)
-
-
-class AssignFromBatchRequest(BaseModel):
-    batch_id: str
 
 
 @router.post("/{lot_id}/assign-from-batch")
