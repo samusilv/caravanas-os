@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Animal
+from app.models import Animal, Event, ReaderScan
 
 router = APIRouter(prefix="/animals", tags=["animals"])
 
@@ -34,3 +34,35 @@ def get_animal(*, session: Session = Depends(get_session), animal_id: int) -> An
     if not animal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Animal not found")
     return animal
+
+
+@router.get("/{animal_id}/history")
+def get_animal_history(*, session: Session = Depends(get_session), animal_id: int) -> dict:
+    """Get animal info, its events (newest first), and related RFID scans."""
+    animal = session.get(Animal, animal_id)
+    if not animal:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Animal not found")
+
+    events = (
+        session.exec(
+            select(Event)
+            .where(Event.animal_id == animal_id)
+            .order_by(Event.recorded_at.desc())
+        )
+        .all()
+    )
+
+    scans = (
+        session.exec(
+            select(ReaderScan)
+            .where(ReaderScan.rfid_code == animal.tag_id)
+            .order_by(ReaderScan.scanned_at.desc())
+        )
+        .all()
+    )
+
+    return {
+        "animal": animal,
+        "events": events,
+        "scans": scans,
+    }
