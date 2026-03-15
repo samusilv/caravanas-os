@@ -34,6 +34,7 @@ The API will be available at `http://127.0.0.1:8000`.
 - `GET /animals/{animal_id}/history` - get animal info + events + scans
 - `GET /animals/by-rfid/{rfid_code}` - lookup animal by RFID with events and last known lot
 - `POST /lots/{lot_id}/assign-from-batch` - assign animals to a lot from a scan batch
+- `GET /lots/{lot_id}/history` - get lot info, animals, and recent events
 - `GET /exports/lots/{lot_id}/embarque` - download CSV report for lot embarque
 - `GET /dashboard/summary` - operational dashboard summary
 - `GET /scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)

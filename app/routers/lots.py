@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Animal, Lot, LotAnimal, ReaderScan
+from app.models import Animal, Event, Lot, LotAnimal, ReaderScan
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
@@ -64,7 +64,6 @@ def list_animals_in_lot(*, session: Session = Depends(get_session), lot_id: int)
     return session.exec(stmt).all()
 
 
-@router.get("/{lot_id}/validate")
 class AssignFromBatchRequest(BaseModel):
     batch_id: str
 
@@ -128,6 +127,37 @@ def assign_from_batch(
     }
 
 
+@router.get("/{lot_id}/history")
+def lot_history(*, session: Session = Depends(get_session), lot_id: int) -> dict:
+    """Return lot info, animals assigned, and recent events for the lot."""
+    lot = session.get(Lot, lot_id)
+    if not lot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found")
+
+    animals = session.exec(
+        select(Animal)
+        .join(LotAnimal, LotAnimal.animal_id == Animal.id)
+        .where(LotAnimal.lot_id == lot_id)
+    ).all()
+
+    animal_ids = [a.id for a in animals]
+    events = (
+        session.exec(
+            select(Event)
+            .where(Event.animal_id.in_(animal_ids))
+            .order_by(Event.recorded_at.desc())
+        )
+        .all()
+    )
+
+    return {
+        "lot": lot,
+        "animals": animals,
+        "events": events,
+    }
+
+
+@router.get("/{lot_id}/validate")
 def validate_lot(*, session: Session = Depends(get_session), lot_id: int) -> dict:
     """Validate a lot: returns animal count and whether any animals are missing (example check)."""
     lot = session.get(Lot, lot_id)
