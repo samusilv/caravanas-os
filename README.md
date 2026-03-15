@@ -30,16 +30,18 @@ The API will be available at `http://127.0.0.1:8000`.
 
 ## 📦 API Endpoints (MVP)
 
-- `GET /` - API root
-- `POST /animals/` - register an animal (requires `tag_id`)
-- `GET /animals/` - list animals
-- `GET /animals/{animal_id}` - get animal details
-- `POST /events/` - create an event for an animal
-- `GET /events/` - list events
-- `GET /events/animal/{animal_id}` - list events for an animal
-- `GET /animals/{animal_id}/history` - get animal info + events (newest first) + scans matched by RFID
-- `GET /animals/by-rfid/{rfid_code}` - lookup animal by RFID with events (newest first) and current lot
-- `POST /lots/{lot_id}/assign-from-batch` - assign animals to a lot from a scan batch
+All endpoints are available under `/api/v1`. Unprefixed legacy routes are still available temporarily for backward compatibility.
+
+- `GET /api/v1/` - API root
+- `POST /api/v1/animals/` - register an animal (requires `tag_id`)
+- `GET /api/v1/animals/` - list animals
+- `GET /api/v1/animals/{animal_id}` - get animal details
+- `POST /api/v1/events/` - create an event for an animal
+- `GET /api/v1/events/` - list events
+- `GET /api/v1/events/animal/{animal_id}` - list events for an animal
+- `GET /api/v1/animals/{animal_id}/history` - get animal info + events (newest first) + scans matched by RFID
+- `GET /api/v1/animals/by-rfid/{rfid_code}` - lookup animal by RFID with events (newest first) and current lot
+- `POST /api/v1/lots/{lot_id}/assign-from-batch` - assign animals to a lot from a scan batch
 
 assign-from-batch payload:
 
@@ -48,13 +50,13 @@ assign-from-batch payload:
   "batch_id": "embarque_001"
 }
 ```
-- `GET /lots/{lot_id}/history` - get lot info, animals, and recent events
-- `GET /exports/lots/{lot_id}/embarque` - download CSV report for lot embarque (`rfid_code`, `visual_tag`, `category`, `sex`, `estimated_weight_kg`, `lot_name`)
-- `GET /dashboard/summary` - operational dashboard summary
-- `POST /ai/lot-summary` - generate deterministic Spanish lot-operation summary from validation data
-- `GET /scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)
-- `POST /scans/bulk` - bulk ingest RFID scan codes (JSON payload)
-- `POST /api/v1/scans` - canonical RFID scan ingestion with idempotency key
+- `GET /api/v1/lots/{lot_id}/history` - get lot info, animals, and recent events
+- `GET /api/v1/exports/lots/{lot_id}/embarque` - download CSV report for lot embarque (`rfid_code`, `visual_tag`, `category`, `sex`, `estimated_weight_kg`, `lot_name`)
+- `GET /api/v1/dashboard/summary` - operational dashboard summary
+- `POST /api/v1/ai/lot-summary` - generate deterministic Spanish lot-operation summary from validation data
+- `GET /api/v1/scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)
+- `POST /api/v1/scans/bulk` - bulk ingest RFID scan codes (JSON payload)
+- `POST /api/v1/scans/canonical` - canonical RFID scan ingestion with idempotency key
 
 Example payload:
 
@@ -80,20 +82,20 @@ Canonical ingestion payload:
 
 ### Lots
 
-- `POST /lots/` - create a lot
-- `GET /lots/` - list lots
-- `POST /lots/{lot_id}/animals/{animal_id}` - assign an animal to a lot
-- `GET /lots/{lot_id}/animals` - list animals in a lot
-- `GET /lots/{lot_id}/validate` - valida lote con resumen de conteo (esperados, escaneados, duplicados, desconocidos)
+- `POST /api/v1/lots/` - create a lot
+- `GET /api/v1/lots/` - list lots
+- `POST /api/v1/lots/{lot_id}/animals/{animal_id}` - assign an animal to a lot
+- `GET /api/v1/lots/{lot_id}/animals` - list animals in a lot
+- `GET /api/v1/lots/{lot_id}/validate` - valida lote con resumen de conteo (esperados, escaneados, duplicados, desconocidos)
 
 ### CSV import (RFID reader scans)
 
-- `POST /imports/scans-csv` - upload a CSV file with columns `rfid_code`, `reader_name` (optional), and `batch_id` (optional).
+- `POST /api/v1/imports/scans-csv` - upload a CSV file with columns `rfid_code`, `reader_name` (optional), and `batch_id` (optional).
 
 Example (curl):
 
 ```bash
-curl -F "file=@scans.csv" http://127.0.0.1:8000/imports/scans-csv
+curl -F "file=@scans.csv" http://127.0.0.1:8000/api/v1/imports/scans-csv
 ```
 
 Response:

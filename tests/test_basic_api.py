@@ -70,3 +70,21 @@ def test_lot_validation_endpoint():
     assert data["scanned_count"] == 0
     assert data["missing_count_estimate"] == 1
     assert "incompleto" in data["status_summary"].lower()
+
+
+def test_api_v1_health_endpoint_available():
+    client = TestClient(app)
+
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_api_v1_animals_endpoint_available():
+    client = TestClient(app)
+
+    payload = {"tag_id": "RFID-TEST-V1", "name": "Versioned Animal"}
+    response = client.post("/api/v1/animals/", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["tag_id"] == payload["tag_id"]

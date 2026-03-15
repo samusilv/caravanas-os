@@ -21,6 +21,7 @@ def on_startup() -> None:
     init_db()
 
 
+# Legacy routes (temporary backward compatibility)
 app.include_router(root_router)
 app.include_router(health_router)
 app.include_router(animals_router)
@@ -32,3 +33,16 @@ app.include_router(exports_router)
 app.include_router(lots_router)
 app.include_router(dashboard_router)
 app.include_router(ai_router)
+
+# Versioned routes
+app.include_router(root_router, prefix="/api/v1")
+app.include_router(health_router, prefix="/api/v1")
+app.include_router(animals_router, prefix="/api/v1")
+app.include_router(events_router, prefix="/api/v1")
+app.include_router(imports_router, prefix="/api/v1")
+app.include_router(scans_router, prefix="/api/v1")
+app.include_router(scans_v1_router, prefix="/api/v1")
+app.include_router(exports_router, prefix="/api/v1")
+app.include_router(lots_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")

@@ -14,7 +14,7 @@ from app.application.services.scan_service import (
 from app.schemas import BulkScanRequest, CanonicalScanIngestRequest, ScanCreateRequest
 
 router = APIRouter(prefix="/scans", tags=["scans"])
-v1_router = APIRouter(prefix="/api/v1/scans", tags=["scans"])
+v1_router = APIRouter(prefix="/scans", tags=["scans"])
 
 
 @router.post("")
@@ -33,7 +33,7 @@ def register_scan(
     }
 
 
-@v1_router.post("")
+@v1_router.post("/canonical")
 def ingest_scan_v1(
     request: CanonicalScanIngestRequest,
     response: Response,
