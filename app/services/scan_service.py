@@ -87,6 +87,18 @@ def bulk_ingest_scans(session: Session, rfid_codes: List[str], reader_name: str 
     }
 
 
+
+def create_scan(session: Session, rfid_code: str, reader_name: str | None, batch_id: str | None) -> ReaderScan:
+    code = rfid_code.strip()
+    if not code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="rfid_code is required")
+
+    scan = ReaderScan(rfid_code=code, reader_name=reader_name, batch_id=batch_id)
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+    return scan
+
 def detect_scan_anomalies(session: Session) -> Dict[str, object]:
     scans = session.exec(select(ReaderScan).order_by(ReaderScan.scanned_at)).all()
 

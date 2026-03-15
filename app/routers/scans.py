@@ -4,11 +4,27 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app.database import get_session
-from app.services.scan_service import bulk_ingest_scans, detect_scan_anomalies
+from app.services.scan_service import bulk_ingest_scans, create_scan, detect_scan_anomalies
 
-from app.schemas import BulkScanRequest
+from app.schemas import BulkScanRequest, ScanCreateRequest
 
 router = APIRouter(prefix="/scans", tags=["scans"])
+
+
+@router.post("")
+def register_scan(
+    request: ScanCreateRequest,
+    session: Session = Depends(get_session),
+) -> Dict[str, object]:
+    """Register a single RFID scan from a reader."""
+    scan = create_scan(session, request.rfid_code, request.reader_name, request.batch_id)
+    return {
+        "id": scan.id,
+        "rfid_code": scan.rfid_code,
+        "reader_name": scan.reader_name,
+        "batch_id": scan.batch_id,
+        "scanned_at": scan.scanned_at.isoformat(),
+    }
 
 
 @router.post("/bulk")

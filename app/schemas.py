@@ -9,6 +9,12 @@ class BulkScanRequest(BaseModel):
     batch_id: Optional[str] = None
 
 
+class ScanCreateRequest(BaseModel):
+    rfid_code: str
+    reader_name: Optional[str] = None
+    batch_id: Optional[str] = None
+
+
 class AssignFromBatchRequest(BaseModel):
     batch_id: str
 
