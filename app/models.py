@@ -35,3 +35,11 @@ class Lot(SQLModel, table=True):
 class LotAnimal(SQLModel, table=True):
     lot_id: int = Field(foreign_key="lot.id", primary_key=True)
     animal_id: int = Field(foreign_key="animal.id", primary_key=True)
+
+
+class ReaderScan(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    rfid_code: str = Field(index=True)
+    reader_name: Optional[str] = None
+    batch_id: Optional[str] = None
+    scanned_at: datetime = Field(default_factory=datetime.utcnow)

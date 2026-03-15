@@ -40,6 +40,20 @@ The API will be available at `http://127.0.0.1:8000`.
 - `GET /lots/{lot_id}/animals` - list animals in a lot
 - `GET /lots/{lot_id}/validate` - validate a lot (basic status)
 
+### CSV import (RFID reader scans)
+
+- `POST /imports/scans-csv` - upload a CSV file with columns `rfid_code`, `reader_name` (optional), and `batch_id` (optional).
+
+Example (curl):
+
+```bash
+curl -F "file=@scans.csv" http://127.0.0.1:8000/imports/scans-csv
+```
+
+Response:
+
+- `total_rows`, `imported_rows`, `skipped_rows`, `errors`
+
 ## 🧪 Run tests
 
 ```bash
