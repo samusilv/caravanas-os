@@ -1,10 +1,11 @@
-from typing import List
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Animal, Lot, LotAnimal
+from app.models import Animal, Lot, LotAnimal, ReaderScan
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
@@ -64,6 +65,69 @@ def list_animals_in_lot(*, session: Session = Depends(get_session), lot_id: int)
 
 
 @router.get("/{lot_id}/validate")
+class AssignFromBatchRequest(BaseModel):
+    batch_id: str
+
+
+@router.post("/{lot_id}/assign-from-batch")
+def assign_from_batch(
+    *,
+    session: Session = Depends(get_session),
+    lot_id: int,
+    request: AssignFromBatchRequest,
+) -> Dict[str, object]:
+    """Assign animals to a lot based on a scan batch."""
+    lot = session.get(Lot, lot_id)
+    if not lot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found")
+
+    scans = session.exec(select(ReaderScan).where(ReaderScan.batch_id == request.batch_id)).all()
+    codes = [scan.rfid_code for scan in scans]
+
+    if not codes:
+        return {"assigned_animals": [], "unknown_rfid_codes": [], "duplicates": []}
+
+    animals = session.exec(select(Animal).where(Animal.tag_id.in_(codes))).all()
+    animal_by_tag = {a.tag_id: a for a in animals}
+
+    # Determine existing assignments for the lot
+    assigned = session.exec(
+        select(LotAnimal).where(
+            LotAnimal.lot_id == lot_id,
+            LotAnimal.animal_id.in_([a.id for a in animals]),
+        )
+    ).all()
+    assigned_ids = {a.animal_id for a in assigned}
+
+    assigned_animals = []
+    duplicates: List[str] = []
+    unknown_rfid_codes: List[str] = []
+
+    for code in codes:
+        animal = animal_by_tag.get(code)
+        if not animal:
+            if code not in unknown_rfid_codes:
+                unknown_rfid_codes.append(code)
+            continue
+
+        if animal.id in assigned_ids:
+            if code not in duplicates:
+                duplicates.append(code)
+            continue
+
+        assigned_animals.append({"id": animal.id, "tag_id": animal.tag_id})
+        session.add(LotAnimal(lot_id=lot_id, animal_id=animal.id))
+        assigned_ids.add(animal.id)
+
+    session.commit()
+
+    return {
+        "assigned_animals": assigned_animals,
+        "unknown_rfid_codes": unknown_rfid_codes,
+        "duplicates": duplicates,
+    }
+
+
 def validate_lot(*, session: Session = Depends(get_session), lot_id: int) -> dict:
     """Validate a lot: returns animal count and whether any animals are missing (example check)."""
     lot = session.get(Lot, lot_id)
