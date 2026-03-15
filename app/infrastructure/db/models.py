@@ -52,12 +52,16 @@ class LotAnimal(SQLModel, table=True):
 class ReaderScan(SQLModel, table=True):
     __table_args__ = (
         Index("ix_readerscan_rfid_code_batch_id_scanned_at", "rfid_code", "batch_id", "scanned_at"),
+        Index("ix_readerscan_idempotency_key", "idempotency_key", unique=True),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     rfid_code: str = Field(index=True)
     reader_name: Optional[str] = None
     batch_id: Optional[str] = None
+    device_id: Optional[str] = None
+    signal_quality: Optional[float] = None
+    idempotency_key: Optional[str] = None
     scanned_at: datetime = Field(default_factory=datetime.utcnow)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

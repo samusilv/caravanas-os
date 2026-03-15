@@ -54,6 +54,7 @@ assign-from-batch payload:
 - `POST /ai/lot-summary` - generate deterministic Spanish lot-operation summary from validation data
 - `GET /scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)
 - `POST /scans/bulk` - bulk ingest RFID scan codes (JSON payload)
+- `POST /api/v1/scans` - canonical RFID scan ingestion with idempotency key
 
 Example payload:
 
@@ -62,6 +63,18 @@ Example payload:
   "rfid_codes": ["858123000000001", "858123000000002"],
   "reader_name": "reader_1",
   "batch_id": "batch_001"
+}
+```
+
+Canonical ingestion payload:
+
+```json
+{
+  "device_id": "reader-gate-01",
+  "operation_timestamp": "2026-03-15T10:30:00Z",
+  "rfid_code": "858123000000001",
+  "signal_quality": 0.92,
+  "idempotency_key": "reader-gate-01:2026-03-15T10:30:00Z:858123000000001"
 }
 ```
 

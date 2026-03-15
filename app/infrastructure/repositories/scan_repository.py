@@ -1,5 +1,5 @@
 import csv
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import TextIOWrapper
 from typing import Any, Dict, List
 
@@ -98,6 +98,44 @@ def create_scan(session: Session, rfid_code: str, reader_name: str | None, batch
     session.refresh(scan)
     return scan
 
+
+
+def ingest_canonical_scan(
+    session: Session,
+    *,
+    device_id: str,
+    operation_timestamp: datetime,
+    rfid_code: str,
+    signal_quality: float,
+    idempotency_key: str,
+) -> tuple[ReaderScan, bool]:
+    code = rfid_code.strip()
+    idem_key = idempotency_key.strip()
+    device = device_id.strip()
+
+    if not code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="rfid_code is required")
+    if not idem_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="idempotency_key is required")
+    if not device:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="device_id is required")
+
+    existing = session.exec(select(ReaderScan).where(ReaderScan.idempotency_key == idem_key)).first()
+    if existing:
+        return existing, False
+
+    scan = ReaderScan(
+        rfid_code=code,
+        scanned_at=operation_timestamp,
+        device_id=device,
+        signal_quality=signal_quality,
+        idempotency_key=idem_key,
+        reader_name=device,
+    )
+    session.add(scan)
+    session.commit()
+    session.refresh(scan)
+    return scan, True
 
 def detect_scan_anomalies(session: Session) -> Dict[str, object]:
     scans = session.exec(select(ReaderScan).order_by(ReaderScan.scanned_at)).all()
