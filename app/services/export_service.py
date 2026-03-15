@@ -26,7 +26,7 @@ def get_lot_embarque_rows(session: Session, lot_id: int) -> Dict[str, object]:
             "visual_tag": a.visual_tag or "",
             "category": a.category or "",
             "sex": a.sex or "",
-            "estimated_weight": a.estimated_weight or "",
+            "estimated_weight_kg": a.estimated_weight or "",
             "lot_name": lot.name,
         }
         for a in animals

@@ -86,5 +86,6 @@ def get_animal_by_rfid(session: Session, rfid_code: str) -> Dict[str, object]:
     return {
         "animal": animal,
         "events": events,
+        "current_lot": last_lot,
         "last_lot": last_lot,
     }

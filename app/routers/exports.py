@@ -21,7 +21,7 @@ def _generate_csv(rows: list[dict]) -> Generator[str, None, None]:
             "visual_tag",
             "category",
             "sex",
-            "estimated_weight",
+            "estimated_weight_kg",
             "lot_name",
         ],
     )

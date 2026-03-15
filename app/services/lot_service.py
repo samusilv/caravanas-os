@@ -63,10 +63,46 @@ def validate_lot(session: Session, lot_id: int) -> Dict[str, object]:
         .where(LotAnimal.lot_id == lot_id)
     ).all()
 
+    expected_count = len(animals)
+    lot_tags = {animal.tag_id for animal in animals if animal.tag_id}
+
+    if not lot_tags:
+        return {
+            "expected_count": 0,
+            "scanned_count": 0,
+            "duplicate_rfid_codes": [],
+            "unknown_rfid_codes": [],
+            "missing_count_estimate": 0,
+            "status_summary": "Lote vacío: no hay animales asignados.",
+        }
+
+    scan_codes = [scan.rfid_code for scan in session.exec(select(ReaderScan)).all() if scan.rfid_code]
+    known_tags = {animal.tag_id for animal in session.exec(select(Animal)).all() if animal.tag_id}
+
+    lot_scan_counts: Dict[str, int] = {}
+    for code in scan_codes:
+        if code in lot_tags:
+            lot_scan_counts[code] = lot_scan_counts.get(code, 0) + 1
+
+    scanned_count = len(set(lot_scan_counts.keys()))
+    duplicate_rfid_codes = sorted([code for code, count in lot_scan_counts.items() if count > 1])
+    unknown_rfid_codes = sorted({code for code in scan_codes if code not in known_tags})
+    missing_count_estimate = max(expected_count - scanned_count, 0)
+
+    if missing_count_estimate == 0 and not duplicate_rfid_codes and not unknown_rfid_codes:
+        status_summary = "Validación OK: conteo completo y sin anomalías."
+    elif missing_count_estimate == 0:
+        status_summary = "Conteo completo, con observaciones de duplicados o RFIDs desconocidos."
+    else:
+        status_summary = f"Conteo incompleto: faltan {missing_count_estimate} animales por escanear."
+
     return {
-        "lot_id": lot_id,
-        "animal_count": len(animals),
-        "status": "valid" if animals else "empty",
+        "expected_count": expected_count,
+        "scanned_count": scanned_count,
+        "duplicate_rfid_codes": duplicate_rfid_codes,
+        "unknown_rfid_codes": unknown_rfid_codes,
+        "missing_count_estimate": missing_count_estimate,
+        "status_summary": status_summary,
     }
 
 
@@ -104,12 +140,13 @@ def assign_from_batch(session: Session, lot_id: int, batch_id: str) -> Dict[str,
         return {}
 
     scans = session.exec(select(ReaderScan).where(ReaderScan.batch_id == batch_id)).all()
-    codes = [scan.rfid_code for scan in scans]
+    codes = [scan.rfid_code for scan in scans if scan.rfid_code]
 
     if not codes:
         return {"assigned_animals": [], "unknown_rfid_codes": [], "duplicates": []}
 
-    animals = session.exec(select(Animal).where(Animal.tag_id.in_(codes))).all()
+    unique_codes = list(dict.fromkeys(codes))
+    animals = session.exec(select(Animal).where(Animal.tag_id.in_(unique_codes))).all()
     animal_by_tag = {a.tag_id: a for a in animals}
 
     assigned = session.exec(
@@ -136,11 +173,12 @@ def assign_from_batch(session: Session, lot_id: int, batch_id: str) -> Dict[str,
                 duplicates.append(code)
             continue
 
-        assigned_animals.append({"id": animal.id, "tag_id": animal.tag_id})
+        assigned_animals.append({"id": animal.id, "tag_id": animal.tag_id, "name": animal.name})
         session.add(LotAnimal(lot_id=lot_id, animal_id=animal.id))
         assigned_ids.add(animal.id)
 
-    session.commit()
+    if assigned_animals:
+        session.commit()
 
     return {
         "assigned_animals": assigned_animals,

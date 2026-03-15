@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from functools import lru_cache
 
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -9,17 +9,17 @@ def _get_database_url() -> str:
     return os.getenv("DATABASE_URL", "sqlite:///./caravana.db")
 
 
-def _get_engine():
+@lru_cache
+def get_engine():
+    """Build and cache the SQLModel engine."""
     return create_engine(_get_database_url(), echo=False)
 
 
 def init_db() -> None:
     """Create database tables if they do not exist."""
-    engine = _get_engine()
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.create_all(get_engine())
 
 
 def get_session() -> Session:
     """Get a new database session."""
-    engine = _get_engine()
-    return Session(engine)
+    return Session(get_engine())

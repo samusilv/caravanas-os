@@ -1,18 +1,12 @@
-from typing import Dict, List, Optional
+from typing import Dict
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.database import get_session
 from app.services.scan_service import bulk_ingest_scans, detect_scan_anomalies
 
-
-class BulkScanRequest(BaseModel):
-    rfid_codes: List[str]
-    reader_name: Optional[str] = None
-    batch_id: Optional[str] = None
-
+from app.schemas import BulkScanRequest
 
 router = APIRouter(prefix="/scans", tags=["scans"])
 
