@@ -64,6 +64,14 @@ Response:
 
 ## 🧪 Run tests
 
+Run the full test suite using pytest:
+
 ```bash
 pytest
+```
+
+Or run a specific subset of tests:
+
+```bash
+pytest tests/test_basic_api.py
 ```
