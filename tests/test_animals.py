@@ -64,3 +64,40 @@ def test_animal_history_includes_events_and_scans():
     assert history["animal"]["id"] == animal["id"]
     assert len(history["events"]) == 1
     assert len(history["scans"]) == 1
+
+
+def test_lookup_by_rfid_includes_events_and_last_lot():
+    client = TestClient(app)
+
+    # Create animal
+    response = client.post("/animals/", json={"tag_id": "RFID-LOOKUP", "name": "Lookup"})
+    assert response.status_code == 201
+    animal = response.json()
+
+    # Create a lot and assign animal
+    response = client.post("/lots/", json={"name": "LotX"})
+    assert response.status_code == 201
+    lot = response.json()
+
+    response = client.post(f"/lots/{lot['id']}/animals/{animal['id']}")
+    assert response.status_code == 201
+
+    # Create an event
+    response = client.post(
+        "/events/",
+        json={
+            "animal_id": animal["id"],
+            "event_type": "movement",
+            "notes": "Moved to LotX",
+        },
+    )
+    assert response.status_code == 201
+
+    # Lookup by RFID
+    response = client.get(f"/animals/by-rfid/{animal['tag_id']}")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["animal"]["id"] == animal["id"]
+    assert len(data["events"]) == 1
+    assert data["last_lot"]["id"] == lot["id"]
