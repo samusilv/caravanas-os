@@ -36,6 +36,7 @@ The API will be available at `http://127.0.0.1:8000`.
 - `POST /lots/{lot_id}/assign-from-batch` - assign animals to a lot from a scan batch
 - `GET /exports/lots/{lot_id}/embarque` - download CSV report for lot embarque
 - `GET /dashboard/summary` - operational dashboard summary
+- `GET /scans/anomalies` - detect scan anomalies (duplicates, unknown RFIDs, unassigned)
 - `POST /scans/bulk` - bulk ingest RFID scan codes (JSON payload)
 
 ### Lots

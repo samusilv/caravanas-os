@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -5,7 +6,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import ReaderScan
+from app.models import Animal, LotAnimal, ReaderScan
 
 
 class BulkScanRequest(BaseModel):
@@ -59,4 +60,54 @@ def bulk_scans(
         "total_received": len(request.rfid_codes),
         "created_scans": len(to_create),
         "duplicated_codes": sorted(list(existing)),
+    }
+
+
+@router.get("/anomalies")
+def scan_anomalies(*, session: Session = Depends(get_session)) -> Dict[str, object]:
+    """Detect scan anomalies for operational monitoring."""
+    # Fetch all scans
+    scans = session.exec(select(ReaderScan).order_by(ReaderScan.scanned_at)).all()
+
+    # Unknown RFID codes
+    known_tags = {a.tag_id for a in session.exec(select(Animal)).all()}
+    unknown_rfids = sorted({scan.rfid_code for scan in scans if scan.rfid_code not in known_tags})
+
+    # Multi-scan within short period
+    quick_window = timedelta(minutes=5)
+    multi_scan_anomalies = []
+    scans_by_code = {}
+    for scan in scans:
+        scans_by_code.setdefault(scan.rfid_code, []).append(scan.scanned_at)
+
+    for code, timestamps in scans_by_code.items():
+        timestamps.sort()
+        group = []
+        for idx in range(1, len(timestamps)):
+            if timestamps[idx] - timestamps[idx - 1] <= quick_window:
+                if not group:
+                    group = [timestamps[idx - 1]]
+                group.append(timestamps[idx])
+            else:
+                if group:
+                    multi_scan_anomalies.append({"rfid_code": code, "timestamps": [t.isoformat() for t in group]})
+                    group = []
+        if group:
+            multi_scan_anomalies.append({"rfid_code": code, "timestamps": [t.isoformat() for t in group]})
+
+    # Scans outside active lots (animal exists but not assigned to any lot)
+    animal_ids_in_lots = {la.animal_id for la in session.exec(select(LotAnimal)).all()}
+    unassigned = []
+    for scan in scans:
+        # skip unknown
+        if scan.rfid_code not in known_tags:
+            continue
+        animal = session.exec(select(Animal).where(Animal.tag_id == scan.rfid_code)).first()
+        if animal and animal.id not in animal_ids_in_lots:
+            unassigned.append({"rfid_code": scan.rfid_code, "animal_id": animal.id, "scanned_at": scan.scanned_at.isoformat()})
+
+    return {
+        "unknown_rfids": unknown_rfids,
+        "multiple_quick_scans": multi_scan_anomalies,
+        "unassigned_scans": unassigned,
     }
