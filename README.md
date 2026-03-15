@@ -10,7 +10,13 @@ CaravanaOS is an MVP backend for a livestock RFID tracking platform. It provides
 pip install -r requirements.txt
 ```
 
-2. Start the API in development mode:
+2. Run database migrations:
+
+```bash
+alembic upgrade head
+```
+
+3. Start the API in development mode:
 
 ```bash
 uvicorn app.main:app --reload
@@ -101,4 +107,25 @@ Or run a specific subset of tests:
 
 ```bash
 pytest tests/test_basic_api.py
+```
+
+
+## 🗃️ Database migrations
+
+- Apply latest migrations:
+
+```bash
+alembic upgrade head
+```
+
+- Create a new migration after model changes:
+
+```bash
+alembic revision --autogenerate -m "describe change"
+```
+
+- Roll back one revision:
+
+```bash
+alembic downgrade -1
 ```
