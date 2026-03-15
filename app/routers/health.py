@@ -1,8 +1,1 @@
-from fastapi import APIRouter
-
-router = APIRouter(prefix="/health", tags=["health"])
-
-
-@router.get("", summary="Health check")
-def health_check() -> dict:
-    return {"status": "ok"}
+from app.api.routers.health import *  # noqa: F401,F403
