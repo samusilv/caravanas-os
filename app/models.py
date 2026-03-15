@@ -15,6 +15,10 @@ class Animal(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tag_id: str = Field(index=True)
     name: Optional[str] = None
+    visual_tag: Optional[str] = None
+    category: Optional[str] = None
+    sex: Optional[str] = None
+    estimated_weight: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
